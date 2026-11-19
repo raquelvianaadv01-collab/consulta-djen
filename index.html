@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta DJEN</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ferramenta de uma coluna — formulário em faixa no topo, resultados agrupados por data de disponibilização */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#1b2333; --muted:#5d677a; --line:#dde1e8;
+  --navy:#1f3358; --gold:#b48a2c; --gold-soft:#f4ecd9; --navy-soft:#e6ebf4;
+  --ok:#2f7a4f; --warn:#a4610e; --err:#a8322d; --err-soft:#f8e4e2;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161e; --surface:#1a202b; --fg:#e4e8ef; --muted:#9aa4b5; --line:#2c3443;
+  --navy:#9db4dc; --gold:#d8b25a; --gold-soft:#332a17; --navy-soft:#1f2a3d;
+  --ok:#6cc08f; --warn:#e3a650; --err:#ec7d76; --err-soft:#3a1d1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161e; --surface:#1a202b; --fg:#e4e8ef; --muted:#9aa4b5; --line:#2c3443;
+  --navy:#9db4dc; --gold:#d8b25a; --gold-soft:#332a17; --navy-soft:#1f2a3d;
+  --ok:#6cc08f; --warn:#e3a650; --err:#ec7d76; --err-soft:#3a1d1c; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--gold);padding-bottom:12px}
+h1{font-size:1.55rem;margin:0;color:var(--navy);letter-spacing:-.01em;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.tabs{display:flex;gap:4px;background:var(--navy-soft);padding:4px;border-radius:8px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:600 .9rem var(--f-body);padding:8px 14px;border-radius:6px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--navy);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field.narrow{flex:0 1 90px}
+label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+textarea{min-height:84px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:600 .92rem var(--f-body);border-radius:6px;padding:9px 16px;cursor:pointer;border:1px solid var(--navy);background:var(--navy);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--navy)}
+.btn:disabled{opacity:.55;cursor:progress}
+.chk{display:flex;gap:6px;align-items:center;font-size:.88rem;color:var(--fg);text-transform:none;letter-spacing:0;font-weight:500}
+.chk input{width:auto}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{font:500 .78rem var(--f-body);border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 10px;cursor:pointer}
+.status{font-size:.88rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status.err{color:var(--err);background:var(--err-soft);padding:10px 12px;border-radius:8px}
+.summary{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.88rem;color:var(--muted)}
+.summary b{color:var(--fg);font-variant-numeric:tabular-nums}
+.day{display:grid;gap:10px}
+.day h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);margin:8px 0 0;display:flex;gap:8px;align-items:baseline}
+.day h2 span{color:var(--muted);font-weight:500;letter-spacing:.02em;text-transform:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;min-width:0}
+.card.edital{border-left:4px solid var(--gold)}
+.top{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.cnj{font:500 .92rem var(--f-mono);color:var(--fg);background:none;border:0;padding:0;cursor:copy;text-align:left}
+.cnj:hover{color:var(--navy);text-decoration:underline}
+.pill{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--navy-soft);color:var(--navy);white-space:nowrap}
+.pill.ed{background:var(--gold-soft);color:var(--gold)}
+.pill.trib{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.org{font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}
+.partes{font-size:.86rem;display:flex;flex-wrap:wrap;gap:4px 14px;overflow-wrap:anywhere}
+.partes em{font-style:normal;color:var(--muted);font-size:.75rem;margin-right:4px}
+.adv{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.match{font-size:.8rem;color:var(--warn);font-weight:600}
+details{font-size:.9rem}
+summary{cursor:pointer;color:var(--navy);font-weight:600;font-size:.86rem}
+.teor{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0;padding:12px;background:var(--bg);border-radius:6px;max-height:420px;overflow:auto;font-size:.88rem;line-height:1.55}
+.foot{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem}
+.foot a{color:var(--navy)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--muted);text-align:center}
+.more{justify-self:center}
+.spin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--navy);border-radius:50%;animation:s 0.8s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--surface);padding:8px 14px;border-radius:6px;font-size:.85rem}
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Consulta DJEN</h1>
+      <p>Diário de Justiça Eletrônico Nacional · Comunica API do CNJ</p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-int" aria-selected="true">Intimações</button>
+      <button type="button" role="tab" id="tab-ed" aria-selected="false">Citações por edital</button>
+      <button type="button" role="tab" id="tab-dje" aria-selected="false">DJE TJAM</button>
+    </div>
+  </header>
+
+  <form id="f-int" autocomplete="off">
+    <div class="row">
+      <div class="field"><label for="oab">Nº OAB</label><input id="oab" inputmode="numeric" placeholder="ex.: 12345"></div>
+      <div class="field narrow"><label for="uf">UF</label><input id="uf" maxlength="2" value="AM"></div>
+      <div class="field"><label for="i-ini">De</label><input id="i-ini" type="date"></div>
+      <div class="field"><label for="i-fim">Até</label><input id="i-fim" type="date"></div>
+      <div class="field"><label for="i-trib">Tribunal</label><input id="i-trib" placeholder="Todos (ex.: TJAM, TRT11)"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="i-proc">Nº do processo (opcional)</label><input id="i-proc" placeholder="0000000-00.0000.0.00.0000"></div>
+      <div class="field"><label for="i-q">Filtrar resultados por texto</label><input id="i-q" placeholder="parte, vara, palavra do teor"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit" id="b-int">Consultar intimações</button>
+      <div class="quick" data-for="i">
+        <button type="button" data-d="0">Hoje</button><button type="button" data-d="3">3 dias</button><button type="button" data-d="7">7 dias</button><button type="button" data-d="30">30 dias</button>
+      </div>
+    </div>
+  </form>
+
+  <form id="f-ed" autocomplete="off" hidden>
+    <div class="row">
+      <div class="field" style="flex-basis:100%"><label for="nomes">Nomes das partes (um por linha)</label>
+        <textarea id="nomes" placeholder="Nome completo da parte, como consta nos autos"></textarea>
+        <p class="hint">O edital é publicado em nome da parte citada, sem advogado. Informe o nome completo; a busca do DJEN é por nome.</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="e-proc">Ou nº do processo</label><input id="e-proc" placeholder="0000000-00.0000.0.00.0000"></div>
+      <div class="field"><label for="e-ini">De</label><input id="e-ini" type="date"></div>
+      <div class="field"><label for="e-fim">Até</label><input id="e-fim" type="date"></div>
+      <div class="field"><label for="e-trib">Tribunal</label><input id="e-trib" placeholder="Todos (ex.: TJAM)"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit" id="b-ed">Consultar editais</button>
+      <label class="chk" for="tipo-ed">Mostrar
+        <select id="tipo-ed" style="width:auto">
+          <option value="todos">Todos os editais</option>
+          <option value="citacao">Só citação</option>
+          <option value="intimacao">Só intimação</option>
+        </select></label>
+      <div class="quick" data-for="e">
+        <button type="button" data-d="30">30 dias</button><button type="button" data-d="90">90 dias</button><button type="button" data-d="180">6 meses</button>
+      </div>
+    </div>
+  </form>
+
+  <form id="f-dje" method="post" action="https://consultasaj.tjam.jus.br/cdje/consultaAvancada.do" target="_blank" rel="noopener" accept-charset="UTF-8" hidden>
+    <div class="row">
+      <div class="field" style="flex-basis:100%"><label for="dje-q">Palavras-chave</label>
+        <input id="dje-q" name="dadosConsulta.pesquisaLivre" placeholder='Nome da parte, nº do processo ou termo. Use aspas para a expressão exata: "Maria da Silva"'>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="dje-ini">De</label><input id="dje-ini" type="date"></div>
+      <div class="field"><label for="dje-fim">Até</label><input id="dje-fim" type="date"></div>
+      <div class="field" style="flex-basis:260px"><label for="dje-cad">Caderno</label>
+        <select id="dje-cad" name="dadosConsulta.cdCaderno">
+          <option value="-11">Todos os cadernos</option>
+          <option value="1">Caderno 1 · Administrativo</option>
+          <option value="2">Caderno 2 · Judiciário · Capital</option>
+          <option value="3">Caderno 3 · Judiciário · Interior</option>
+          <option value="4">Caderno 4 · Distribuição e Eliminação de Processos</option>
+          <option value="8">Caderno 8 · Extra</option>
+        </select>
+      </div>
+    </div>
+    <input type="hidden" name="dadosConsulta.dtInicio" id="dje-ini-br">
+    <input type="hidden" name="dadosConsulta.dtFim" id="dje-fim-br">
+    <div class="actions">
+      <button class="btn" type="submit">Pesquisar no DJE do TJAM</button>
+    </div>
+    <p class="hint">O resultado abre em nova aba, no site do TJAM (e-SAJ). As publicações judiciais do TJAM passaram para o DJEN; a última edição encontrada no DJE próprio foi a de 04/09/2026. Use esta aba para pesquisar edições até essa data. Períodos de um ano inteiro voltaram vazios nos testes; prefira consultar alguns meses por vez.</p>
+  </form>
+
+  <div id="status" class="status" hidden></div>
+  <div id="summary" class="summary" hidden></div>
+  <div id="results"><div class="empty">Escolha o período e clique em consultar. As publicações aparecem aqui agrupadas por data de disponibilização.</div></div>
+  <button class="btn ghost more" id="more" type="button" hidden>Carregar mais</button>
+</div>
+
+<script>
+const API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
+const HOST = "host:claude_browser";
+const POR_PAGINA = 20;
+const $ = id => document.getElementById(id);
+let mcp = null, mcpReady = null, modo = "int", estado = null, busy = false;
+
+function iso(d){return d.toISOString().slice(0,10)}
+function hoje(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d}
+function setRange(p,dias){const f=hoje(),i=hoje();i.setDate(i.getDate()-dias);$(p+"-ini").value=iso(i);$(p+"-fim").value=iso(f)}
+function digits(s){return (s||"").replace(/\D/g,"")}
+function br(isoDate){const [y,m,d]=isoDate.split("-");return `${d}/${m}/${y}`}
+function norm(s){return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase()}
+function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),1800)}
+
+// ---- preferências locais
+const CAMPOS=["oab","uf","i-trib","nomes","e-trib","tipo-ed"];
+function salvar(){try{const o={};CAMPOS.forEach(k=>{const e=$(k);o[k]=e.type==="checkbox"?e.checked:e.value});localStorage.setItem("djen-prefs",JSON.stringify(o))}catch{}}
+function carregar(){try{const o=JSON.parse(localStorage.getItem("djen-prefs")||"{}");CAMPOS.forEach(k=>{if(k in o){const e=$(k);if(e.type==="checkbox")e.checked=o[k];else e.value=o[k]}})}catch{}}
+
+// ---- abas
+function aba(m){modo=m;
+  [["int","tab-int","f-int"],["ed","tab-ed","f-ed"],["dje","tab-dje","f-dje"]].forEach(([k,t,f])=>{$(t).setAttribute("aria-selected",m===k);$(f).hidden=m!==k});
+  limpar(); $("results").hidden=m==="dje";
+}
+$("tab-int").onclick=()=>aba("int");$("tab-ed").onclick=()=>aba("ed");$("tab-dje").onclick=()=>aba("dje");
+$("f-dje").addEventListener("submit",e=>{
+  const ini=$("dje-ini").value, fim=$("dje-fim").value, q=$("dje-q").value.trim();
+  if(!q||!ini||!fim||ini>fim){e.preventDefault();status(!q?"Informe as palavras-chave.":"Confira o período: informe as duas datas, com a inicial antes da final.",true);return}
+  $("status").hidden=true;
+  $("dje-ini-br").value=br(ini); $("dje-fim-br").value=br(fim);
+});
+document.querySelectorAll(".quick").forEach(q=>q.addEventListener("click",e=>{const b=e.target.closest("button");if(b)setRange(q.dataset.for,+b.dataset.d)}));
+
+// ---- status
+function status(html,err){const s=$("status");s.hidden=false;s.className="status"+(err?" err":"");s.innerHTML=html}
+function limpar(){$("status").hidden=true;$("summary").hidden=true;$("more").hidden=true;$("results").innerHTML='<div class="empty">Escolha o período e clique em consultar. As publicações aparecem aqui agrupadas por data de disponibilização.</div>';estado=null}
+
+function semNavegador(url){
+  status(`Esta consulta usa o navegador do app Claude para ler o DJEN. Abra este artefato no app Claude para desktop e permita o acesso ao navegador quando ele pedir. Enquanto isso, a mesma consulta pode ser aberta <a href="${url}" target="_blank" rel="noopener">direto na API do DJEN</a> ou em <a href="https://comunica.pje.jus.br/" target="_blank" rel="noopener">comunica.pje.jus.br</a>.`,true)
+}
+
+// ---- acesso ao DJEN via navegador do app
+async function buscarJSON(url){
+  let r;
+  try{ r=await fetch(url,{headers:{Accept:"application/json"}}); }
+  catch{ throw {code:"rede",message:"Sem conexão com o DJEN. Verifique a internet e tente de novo."}; }
+  if(r.status===429) throw {code:"rede",message:"O DJEN limita cerca de 20 consultas por minuto. Aguarde um minuto e clique em Carregar mais."};
+  if(!r.ok) throw {code:"rede",message:`O DJEN respondeu com erro ${r.status}. Tente de novo em instantes.`};
+  return r.json();
+}
+
+function montarURL(params,pagina){
+  const u=new URLSearchParams();
+  Object.entries(params).forEach(([k,v])=>{if(v)u.set(k,v)});
+  u.set("pagina",pagina);u.set("itensPorPagina",POR_PAGINA);
+  return API+"?"+u.toString();
+}
+
+function erroTexto(e){
+  switch(e&&e.code){
+    case "server_not_connected": case "not_granted": case "capability_disabled": case "capability_removed": return null;
+    case "cancelled": return "A leitura pelo navegador foi recusada. Clique em consultar de novo e permita o acesso.";
+    case "not_in_manifest": return "O acesso ao navegador foi desligado para este artefato. Reative-o no menu Permissões do artefato.";
+    case "approval_required": return "A consulta precisa da sua aprovação para usar o navegador. Clique em consultar de novo e aprove.";
+    case "server_unavailable": return "O navegador do app não respondeu a tempo. Tente de novo em alguns segundos.";
+    case "grande": case "parse": return e.message;
+    default: return "Falha na consulta: "+((e&&e.message)||"erro desconhecido")+".";
+  }
+}
+
+// ---- consulta
+async function consultar(novo){
+  if(busy) return;
+  if(novo){
+    const p=modo==="int"?"i":"e";
+    const ini=$(p+"-ini").value, fim=$(p+"-fim").value;
+    if(!ini||!fim){status("Informe as datas de início e fim.",true);return}
+    if(ini>fim){status("A data inicial é posterior à final.",true);return}
+    const base={dataDisponibilizacaoInicio:ini,dataDisponibilizacaoFim:fim,siglaTribunal:$(p+"-trib").value.trim().toUpperCase()};
+    let buscas=[];
+    if(modo==="int"){
+      const oab=digits($("oab").value), uf=$("uf").value.trim().toUpperCase(), proc=digits($("i-proc").value);
+      if(!oab&&!proc){status("Informe o nº da OAB ou o nº do processo.",true);return}
+      buscas=[{rotulo:proc||`OAB ${oab}/${uf}`,params:{...base,numeroOab:proc?"":oab,ufOab:proc?"":uf,numeroProcesso:proc}}];
+    }else{
+      const proc=digits($("e-proc").value);
+      const nomes=$("nomes").value.split("\n").map(s=>s.trim()).filter(Boolean);
+      if(!proc&&!nomes.length){status("Informe ao menos um nome de parte ou o nº do processo.",true);return}
+      buscas=proc?[{rotulo:"Processo "+$("e-proc").value.trim(),params:{...base,numeroProcesso:proc}}]
+                 :nomes.map(n=>({rotulo:n,params:{...base,nomeParte:n}}));
+    }
+    salvar();
+    estado={modo,buscas:buscas.map(b=>({...b,pagina:0,total:null,fim:false})),itens:new Map()};
+    $("results").innerHTML="";
+  }
+  if(!estado) return;
+  busy=true; $("b-int").disabled=$("b-ed").disabled=$("more").disabled=true;
+  try{
+    for(const b of estado.buscas){
+      if(b.fim) continue;
+      const paginas = estado.modo==="ed" ? 3 : 2; // editais são minoria entre as publicações por nome
+      for(let k=0;k<paginas && !b.fim;k++){
+        b.pagina++;
+        status(`<span class="spin" aria-hidden="true"></span> Lendo ${esc(b.rotulo)} · página ${b.pagina}${b.total!=null?" de "+Math.ceil(b.total/POR_PAGINA):""}…`);
+        const d=await buscarJSON(montarURL(b.params,b.pagina));
+        if(d.status && d.status!=="success"){throw {code:"parse",message:"O DJEN respondeu: "+(d.message||d.status)}}
+        b.total=d.count??0;
+        (d.items||[]).forEach(it=>{if(!estado.itens.has(it.id)) estado.itens.set(it.id,{...it,_busca:b.rotulo})});
+        if(!d.items||d.items.length<POR_PAGINA||b.pagina*POR_PAGINA>=b.total) b.fim=true;
+        render();
+      }
+    }
+    $("status").hidden=true;
+  }catch(e){
+    status(esc((e&&e.message)||"Falha na consulta."),true);
+  }finally{
+    busy=false; $("b-int").disabled=$("b-ed").disabled=$("more").disabled=false;
+    render();
+  }
+}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function limparTeor(t){
+  if(!t) return "";
+  if(/<[a-z][\s\S]*>/i.test(t)){const doc=new DOMParser().parseFromString(t.replace(/<br\s*\/?>/gi,"\n").replace(/<\/p>/gi,"\n\n"),"text/html");t=doc.body.textContent||""}
+  return t.replace(/\r/g,"").replace(/\n{3,}/g,"\n\n").trim();
+}
+function trechoEdital(it){return norm((it.tipoDocumento||"")+" "+limparTeor((it.texto||"").slice(0,6000)))}
+function ehCitacao(it){return /\bcita(cao|coes|do|da|dos|das|r)\b/.test(trechoEdital(it))}
+function ehIntimacao(it){return /\bintima(cao|coes|do|da|dos|das|r)\b/.test(trechoEdital(it))}
+const TIPO_ROTULO={todos:"",citacao:" de citação",intimacao:" de intimação"};
+
+function filtrados(){
+  let arr=[...estado.itens.values()];
+  if(estado.modo==="ed"){
+    arr=arr.filter(it=>it.tipoComunicacao==="Edital");
+    const tipo=$("tipo-ed").value;
+    if(tipo==="citacao") arr=arr.filter(ehCitacao);
+    if(tipo==="intimacao") arr=arr.filter(ehIntimacao);
+  }else{
+    const q=norm($("i-q").value.trim());
+    if(q) arr=arr.filter(it=>norm([it.texto,it.nomeOrgao,it.numeroprocessocommascara,(it.destinatarios||[]).map(d=>d.nome).join(" ")].join(" ")).includes(q));
+  }
+  return arr.sort((a,b)=>b.data_disponibilizacao.localeCompare(a.data_disponibilizacao)||a.siglaTribunal.localeCompare(b.siglaTribunal));
+}
+
+function render(){
+  if(!estado) return;
+  const arr=filtrados(), lidos=estado.itens.size;
+  const totalApi=estado.buscas.reduce((s,b)=>s+(b.total||0),0);
+  const sm=$("summary"); sm.hidden=false;
+  sm.innerHTML = estado.modo==="ed"
+    ? `<span><b>${arr.length}</b> edita${arr.length===1?"l":"is"}${TIPO_ROTULO[$("tipo-ed").value]||""}</span><span><b>${lidos}</b> de <b>${totalApi}</b> publicações lidas</span><span>${estado.buscas.length} busca${estado.buscas.length>1?"s":""}</span>`
+    : `<span><b>${arr.length}</b> exibida${arr.length===1?"":"s"}</span><span><b>${lidos}</b> de <b>${totalApi}</b> carregadas</span><span><b>${arr.filter(i=>i.tipoComunicacao==="Intimação").length}</b> intimações</span>`;
+  $("more").hidden = estado.buscas.every(b=>b.fim);
+  const box=$("results");
+  if(!arr.length){box.innerHTML = busy?"":`<div class="empty">${estado.modo==="ed"?"Nenhum edital encontrado nas publicações lidas."+(estado.buscas.every(b=>b.fim)?"":" Use Carregar mais para ler as páginas seguintes."):"Nenhuma publicação no período."}</div>`;return}
+  const grupos={}; arr.forEach(it=>(grupos[it.data_disponibilizacao]??=[]).push(it));
+  box.innerHTML=Object.entries(grupos).map(([d,its])=>`<section class="day"><h2>${br(d)} <span>${its.length} publicação${its.length>1?"ões":""}</span></h2>${its.map(card).join("")}</section>`).join("");
+}
+
+function card(it){
+  const ed=it.tipoComunicacao==="Edital";
+  const partes=(it.destinatarios||[]).map(d=>`<span><em>${d.polo==="A"?"Ativo":d.polo==="P"?"Passivo":esc(d.polo||"")}</em>${esc(d.nome)}</span>`).join("");
+  const advs=(it.destinatarioadvogados||[]).map(a=>a.advogado&&`${esc(a.advogado.nome)} (OAB ${esc(a.advogado.numero_oab)}/${esc(a.advogado.uf_oab)})`).filter(Boolean).join(" · ");
+  const cert=it.hash?`${API}/${encodeURIComponent(it.hash)}/certidao`:"";
+  const multi=estado.buscas.length>1;
+  return `<article class="card${ed?" edital":""}">
+    <div class="top">
+      <button type="button" class="cnj" data-copy="${esc(it.numeroprocessocommascara||it.numero_processo)}" title="Copiar número">${esc(it.numeroprocessocommascara||it.numero_processo)}</button>
+      <span class="pill${ed?" ed":""}">${esc(it.tipoComunicacao)}${it.tipoDocumento?" · "+esc(it.tipoDocumento):""}</span>
+      <span class="pill trib">${esc(it.siglaTribunal)}</span>
+    </div>
+    <div class="org">${esc(it.nomeOrgao)}${it.nomeClasse?" · "+esc(it.nomeClasse):""}</div>
+    ${partes?`<div class="partes">${partes}</div>`:""}
+    ${advs?`<div class="adv">${advs}</div>`:""}
+    ${multi?`<div class="match">Encontrado na busca por: ${esc(it._busca)}</div>`:""}
+    <details><summary>Ler o teor</summary><div class="teor">${esc(limparTeor(it.texto))}</div></details>
+    <div class="foot">
+      <span>Disponibilizado em ${br(it.data_disponibilizacao)}</span>
+      ${cert?`<a href="${cert}" target="_blank" rel="noopener">Certidão de publicação</a>`:""}
+      ${it.link?`<a href="${esc(it.link)}" target="_blank" rel="noopener">Documento</a>`:""}
+    </div>
+  </article>`;
+}
+
+$("results").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-copy]"); if(!b) return;
+  try{await navigator.clipboard.writeText(b.dataset.copy);toast("Número copiado")}
+  catch{const r=document.createRange();r.selectNodeContents(b);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Número selecionado")}
+});
+$("f-int").addEventListener("submit",e=>{e.preventDefault();consultar(true)});
+$("f-ed").addEventListener("submit",e=>{e.preventDefault();consultar(true)});
+$("more").addEventListener("click",()=>consultar(false));
+$("tipo-ed").addEventListener("change",()=>{salvar();render()});
+$("i-q").addEventListener("input",()=>render());
+
+carregar(); setRange("i",7); setRange("e",90);
+$("dje-ini").value="2026-08-01"; $("dje-fim").value="2026-09-04";
+</script>
+</body></html>
